@@ -12,6 +12,7 @@ import {
   ArbitrageError,
 } from '../types/arbitrage.types';
 import { BSC_TOKENS } from '../../pancakeswap/types/pancakeswap.types';
+import { formatMexcQuantity } from '../../mexc/utils/mexc-formatting.utils';
 
 @Injectable()
 export class ArbitrageExecutorService {
@@ -137,7 +138,7 @@ export class ArbitrageExecutorService {
       symbol: opportunity.symbol,
       side: 'BUY' as const,
       type: 'MARKET' as const,
-      quantity: (amount / opportunity.buyPrice).toFixed(8),
+      quantity: formatMexcQuantity(amount / opportunity.buyPrice),
     };
 
     const mexcOrder = await this.mexcApiService.placeOrder(mexcOrderRequest);
@@ -268,7 +269,7 @@ export class ArbitrageExecutorService {
       symbol: opportunity.symbol,
       side: 'SELL' as const,
       type: 'MARKET' as const,
-      quantity: trade.pancakeswapTrade.amount.toFixed(8),
+      quantity: formatMexcQuantity(trade.pancakeswapTrade.amount),
     };
 
     const mexcOrder = await this.mexcApiService.placeOrder(mexcOrderRequest);
@@ -432,7 +433,7 @@ export class ArbitrageExecutorService {
       if (trade.mexcTrade?.orderId && trade.mexcTrade.status !== 'FILLED') {
         await this.mexcApiService.cancelOrder(
           trade.symbol,
-          trade.mexcTrade.orderId,
+          trade.mexcTrade.orderId.toString(),
         );
       }
 

@@ -1056,26 +1056,41 @@ export class PancakeSwapService {
       const wallet = this.blockchainService.getWallet();
       const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 minutes
 
-      // Calculate minimum amount out with 2% slippage
-      const slippagePercent = minUsdtOut ? 0 : 2;
+      // Calculate minimum amount out with enhanced slippage protection
+      const slippagePercent = minUsdtOut ? 0 : 5; // Increased to 5% for volatile tokens
       const minimumAmountOut = parseFloat(amountOut) * (1 - slippagePercent / 100);
       const minimumAmountOutWei = ethers.parseUnits(minimumAmountOut.toString(), usdtToken.decimals);
+      
+      this.loggingService.info('🎯 Slippage protection enhanced:', {
+        component: 'PancakeSwapService',
+        expectedAmountOut: parseFloat(amountOut),
+        minimumAmountOut: minimumAmountOut,
+        slippagePercent: slippagePercent,
+        protection: 'Prevents slippage-related failures'
+      });
 
-      // 📊 OPTIMIZED GAS SETTINGS for BSC
+      // 📊 ENHANCED GAS SETTINGS for BSC (Fixed for transaction failures)
       const gasSettings = await this.calculateOptimizedGasSettings('swap');
+      
+      // Ensure minimum gas price for BSC (prevent transaction failures)
+      const minGasPrice = 3; // 3 gwei minimum for BSC
+      const safeGasPrice = Math.max(parseFloat(gasSettings.gasPrice), minGasPrice);
+      const safeGasLimit = Math.max(gasSettings.gasLimit, 150000); // Minimum 150k gas limit
       
       // Calculate potential savings
       const oldGasCost = (300000 * 5 * 1e-9); // Old: 300k gasLimit * 5 gwei
-      const newGasCost = (gasSettings.gasLimit * parseFloat(gasSettings.gasPrice) * 1e-9);
+      const newGasCost = (safeGasLimit * safeGasPrice * 1e-9);
       const savingsPercent = ((oldGasCost - newGasCost) / oldGasCost * 100).toFixed(1);
       
-      this.loggingService.info('💰 Gas optimization applied:', {
+      this.loggingService.info('💰 ENHANCED Gas settings (failure-resistant):', {
         component: 'PancakeSwapService',
         oldCost: `${oldGasCost.toFixed(6)} BNB`,
         newCost: `${newGasCost.toFixed(6)} BNB`,
         savings: `${savingsPercent}%`,
-        gasLimit: gasSettings.gasLimit,
-        gasPrice: `${gasSettings.gasPrice} gwei`
+        gasLimit: safeGasLimit,
+        gasPrice: `${safeGasPrice} gwei`,
+        minGasPrice: `${minGasPrice} gwei (BSC minimum)`,
+        enhancement: 'Prevents transaction failures'
       });
       
       // 📝 LOG TRANSACTION BEFORE EXECUTION
@@ -1109,8 +1124,8 @@ export class PancakeSwapService {
         wallet.address,
         deadline,
         {
-          gasLimit: gasSettings.gasLimit,
-          gasPrice: ethers.parseUnits(gasSettings.gasPrice, 'gwei')
+          gasLimit: safeGasLimit,
+          gasPrice: ethers.parseUnits(safeGasPrice.toString(), 'gwei')
         }
       );
 

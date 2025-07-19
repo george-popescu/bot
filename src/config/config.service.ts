@@ -126,6 +126,7 @@ export class ConfigService {
       strategy: this.configService.get('MM_STRATEGY'),
       buyRatio: this.configService.get('MM_BUY_RATIO'),
       sellRatio: this.configService.get('MM_SELL_RATIO'),
+      maxRebalanceDistance: this.configService.get('MM_MAX_REBALANCE_DISTANCE'),
     };
   }
 

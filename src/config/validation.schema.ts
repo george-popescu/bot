@@ -87,6 +87,7 @@ export const validationSchema = Joi.object({
     .default('BALANCED'),
   MM_BUY_RATIO: Joi.number().min(0.1).max(1.0).default(1.0),
   MM_SELL_RATIO: Joi.number().min(0.1).max(1.0).default(1.0),
+  MM_MAX_REBALANCE_DISTANCE: Joi.number().min(1.0).max(20.0).default(5.0),
 
   // Server Configuration
   PORT: Joi.number().port().default(3000),
@@ -142,9 +143,15 @@ export interface EnvironmentVariables {
   MM_PRICE_OFFSET: number;
   MM_LEVELS: number;
   MM_LEVEL_DISTANCE: number;
-  MM_STRATEGY: 'BALANCED' | 'BUY_ONLY' | 'SELL_ONLY' | 'ACCUMULATE' | 'DISTRIBUTE';
+  MM_STRATEGY:
+    | 'BALANCED'
+    | 'BUY_ONLY'
+    | 'SELL_ONLY'
+    | 'ACCUMULATE'
+    | 'DISTRIBUTE';
   MM_BUY_RATIO: number;
   MM_SELL_RATIO: number;
+  MM_MAX_REBALANCE_DISTANCE: number;
 
   PORT: number;
   API_RATE_LIMIT: number;

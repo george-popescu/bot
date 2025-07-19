@@ -19,6 +19,7 @@ import { firstValueFrom } from 'rxjs';
 import { timeout, retry, catchError } from 'rxjs/operators';
 import * as crypto from 'crypto';
 import { MexcNativeHttpService } from './mexc-native-http.service';
+import { formatMexcQuantity, formatMexcPrice } from '../utils/mexc-formatting.utils';
 
 @Injectable()
 export class MexcApiService {
@@ -284,12 +285,12 @@ export class MexcApiService {
     }
   }
 
-  async cancelOrder(symbol: string, orderId: number): Promise<MexcOrder> {
+  async cancelOrder(symbol: string, orderId: string | number): Promise<MexcOrder> {
     const startTime = Date.now();
     try {
       const params = {
         symbol,
-        orderId,
+        orderId: orderId.toString(), // Keep as string to preserve full order ID format
         timestamp: Date.now(),
       };
       // Folosește serviciul nativ pentru DELETE semnat
@@ -408,8 +409,8 @@ export class MexcApiService {
         symbol: symbol.toUpperCase(),
         side: 'SELL',
         type: price ? 'LIMIT' : 'MARKET',
-        quantity: quantity.toString(),
-        ...(price && { price: price.toString() }),
+        quantity: formatMexcQuantity(quantity),
+        ...(price && { price: formatMexcPrice(price) }),
         ...(price && { timeInForce: 'GTC' as const }),
       };
 
@@ -624,8 +625,28 @@ export class MexcApiService {
   }
 
   private handleApiError(error: any): MexcApiError {
+    // Log the raw error for debugging
+    this.loggingService.info('🔍 Raw API error details', {
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name,
+      errorKeys: error ? Object.keys(error) : [],
+      errorMessage: error?.message,
+      errorCode: error?.code,
+      errorResponse: error?.response,
+      errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+    });
+
     if (error instanceof MexcApiError) {
       return error;
+    }
+
+    // Handle direct error objects from MexcNativeHttpService (rejected promises)
+    if (error && typeof error === 'object' && error.code && error.msg) {
+      return new MexcApiError(
+        error.msg || 'MEXC API Error',
+        error.code === -2011 ? 404 : 400, // -2011 is "Unknown order sent"
+        error,
+      );
     }
 
     if (error.response?.data) {
@@ -645,7 +666,11 @@ export class MexcApiService {
       return new MexcApiError('Network error', 503);
     }
 
-    return new MexcApiError(error.message || 'Unknown MEXC API error', 500);
+    // Enhanced error message with more context
+    const errorMessage = error?.message || error?.msg || 'Unknown MEXC API error';
+    const errorCode = error?.code || 500;
+    
+    return new MexcApiError(errorMessage, errorCode, error);
   }
 
   // Utility Methods
