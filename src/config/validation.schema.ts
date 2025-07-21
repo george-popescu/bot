@@ -89,6 +89,35 @@ export const validationSchema = Joi.object({
   MM_SELL_RATIO: Joi.number().min(0.1).max(1.0).default(1.0),
   MM_MAX_REBALANCE_DISTANCE: Joi.number().min(1.0).max(20.0).default(5.0),
 
+  // Volume Booster Configuration
+  VB_ENABLED: Joi.boolean().default(false),
+  VB_MONITORING_MODE: Joi.boolean().default(true),
+  VB_TARGET_VOLUME_DAILY: Joi.number().min(100).max(50000).default(1000),
+  VB_MIN_TRADE_SIZE: Joi.number().min(150).max(1000).default(150),
+  VB_MAX_TRADE_SIZE: Joi.number().min(150).max(5000).default(300),
+  VB_CYCLE_INTERVAL_MIN: Joi.number().min(1).max(3600).default(60),
+  VB_CYCLE_INTERVAL_MAX: Joi.number().min(10).max(3600).default(300),
+  VB_PRICE_DEVIATION_LIMIT: Joi.number().min(0.1).max(2.0).default(0.2),
+  VB_DAILY_FEE_BUDGET: Joi.number().min(10).max(500).default(50),
+  VB_STEALTH_MODE: Joi.boolean().default(true),
+  VB_ICEBERG_SIZE: Joi.number().min(150).max(1000).default(200),
+  VB_RANDOMIZE_EXECUTION: Joi.boolean().default(true),
+  VB_MAX_CONCURRENT_TRADES: Joi.number().min(1).max(10).default(3),
+  VB_STRATEGY: Joi.string()
+    .valid(
+      'RANDOM',
+      'BALANCED',
+      'SMART_SPREAD',
+      'BUY_HEAVY',
+      'SELL_HEAVY',
+      'ALTERNATING',
+    )
+    .default('BALANCED'),
+  VB_BALANCE_WINDOW: Joi.number().min(5).max(50).default(20),
+  VB_PRICE_IMPACT_LIMIT: Joi.number().min(0.1).max(2.0).default(0.5),
+  VB_USE_SPREAD_TRADING: Joi.boolean().default(true),
+  VB_MAX_CONSECUTIVE_SIDE: Joi.number().min(1).max(10).default(3),
+
   // Server Configuration
   PORT: Joi.number().port().default(3000),
   API_RATE_LIMIT: Joi.number().min(10).max(1000).default(100),
@@ -152,6 +181,25 @@ export interface EnvironmentVariables {
   MM_BUY_RATIO: number;
   MM_SELL_RATIO: number;
   MM_MAX_REBALANCE_DISTANCE: number;
+
+  VB_ENABLED: boolean;
+  VB_MONITORING_MODE: boolean;
+  VB_TARGET_VOLUME_DAILY: number;
+  VB_MIN_TRADE_SIZE: number;
+  VB_MAX_TRADE_SIZE: number;
+  VB_CYCLE_INTERVAL_MIN: number;
+  VB_CYCLE_INTERVAL_MAX: number;
+  VB_PRICE_DEVIATION_LIMIT: number;
+  VB_DAILY_FEE_BUDGET: number;
+  VB_STEALTH_MODE: boolean;
+  VB_ICEBERG_SIZE: number;
+  VB_RANDOMIZE_EXECUTION: boolean;
+  VB_MAX_CONCURRENT_TRADES: number;
+  VB_STRATEGY: 'RANDOM' | 'BALANCED' | 'SMART_SPREAD' | 'BUY_HEAVY' | 'SELL_HEAVY' | 'ALTERNATING';
+  VB_BALANCE_WINDOW: number;
+  VB_PRICE_IMPACT_LIMIT: number;
+  VB_USE_SPREAD_TRADING: boolean;
+  VB_MAX_CONSECUTIVE_SIDE: number;
 
   PORT: number;
   API_RATE_LIMIT: number;

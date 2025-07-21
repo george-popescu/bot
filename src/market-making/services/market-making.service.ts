@@ -22,6 +22,7 @@ export enum MarketMakingStrategy {
 
 export interface MarketMakingConfig {
   enabled: boolean;
+  symbol: string; // trading symbol (e.g., 'ILMTUSDT')
   exchange: 'MEXC' | 'PANCAKESWAP' | 'BOTH';
   spread: number; // percentage
   orderSize: number; // ILMT amount
@@ -78,6 +79,7 @@ export class MarketMakingService {
     const mmConfig = this.configService.marketMakingConfig;
     this.config = {
       enabled: mmConfig.enabled !== undefined ? mmConfig.enabled : true,
+      symbol: 'ILMTUSDT',
       exchange: mmConfig.exchange || 'MEXC',
       spread: mmConfig.spread || 0.5,
       orderSize: mmConfig.orderSize || 100,
@@ -196,8 +198,9 @@ export class MarketMakingService {
     try {
       this.loggingService.info('🔄 Running market making cycle');
       // Get current market prices - use same logic as arbitrage bot
-      const mexcBookTicker =
-        await this.mexcApiService.getBookTicker('ILMTUSDT');
+      const mexcBookTicker = await this.mexcApiService.getBookTicker(
+        this.config.symbol,
+      );
       const mexcBidPrice = parseFloat(mexcBookTicker.bidPrice);
       const mexcAskPrice = parseFloat(mexcBookTicker.askPrice);
       const mexcMidPrice = (mexcBidPrice + mexcAskPrice) / 2;
@@ -886,7 +889,9 @@ export class MarketMakingService {
         return ilmt ? parseFloat(ilmt.free) >= amount : false;
       }
     } catch (error) {
-      this.loggingService.error(`Failed to check balance for order: ${error instanceof Error ? error.message : String(error)}`);
+      this.loggingService.error(
+        `Failed to check balance for order: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return false;
     }
   }

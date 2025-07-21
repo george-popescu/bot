@@ -14,7 +14,7 @@ import { MexcNativeHttpService } from './services/mexc-native-http.service';
       timeout: 10000,
       maxRedirects: 3,
     }),
-    EventEmitterModule,
+    EventEmitterModule.forRoot(),
     ConfigModule,
     LoggingModule,
   ],

@@ -130,6 +130,30 @@ export class ConfigService {
     };
   }
 
+  // Volume Booster Configuration
+  get volumeBoosterConfig() {
+    return {
+      enabled: this.configService.get('VB_ENABLED'),
+      monitoringMode: this.configService.get('VB_MONITORING_MODE'),
+      targetVolumeDaily: this.configService.get('VB_TARGET_VOLUME_DAILY'),
+      minTradeSize: this.configService.get('VB_MIN_TRADE_SIZE'),
+      maxTradeSize: this.configService.get('VB_MAX_TRADE_SIZE'),
+      cycleIntervalMin: this.configService.get('VB_CYCLE_INTERVAL_MIN'),
+      cycleIntervalMax: this.configService.get('VB_CYCLE_INTERVAL_MAX'),
+      priceDeviationLimit: this.configService.get('VB_PRICE_DEVIATION_LIMIT'),
+      dailyFeeBudget: this.configService.get('VB_DAILY_FEE_BUDGET'),
+      stealthMode: this.configService.get('VB_STEALTH_MODE'),
+      icebergSize: this.configService.get('VB_ICEBERG_SIZE'),
+      randomizeExecution: this.configService.get('VB_RANDOMIZE_EXECUTION'),
+      maxConcurrentTrades: this.configService.get('VB_MAX_CONCURRENT_TRADES'),
+      strategy: this.configService.get('VB_STRATEGY'),
+      balanceWindow: this.configService.get('VB_BALANCE_WINDOW'),
+      priceImpactLimit: this.configService.get('VB_PRICE_IMPACT_LIMIT'),
+      useSpreadTrading: this.configService.get('VB_USE_SPREAD_TRADING'),
+      maxConsecutiveSide: this.configService.get('VB_MAX_CONSECUTIVE_SIDE'),
+    };
+  }
+
   // Server Configuration
   get port(): number {
     return this.configService.get('PORT');
