@@ -151,6 +151,12 @@ export class ConfigService {
       priceImpactLimit: this.configService.get('VB_PRICE_IMPACT_LIMIT'),
       useSpreadTrading: this.configService.get('VB_USE_SPREAD_TRADING'),
       maxConsecutiveSide: this.configService.get('VB_MAX_CONSECUTIVE_SIDE'),
+      // HIGH_VOLUME_BURST specific configuration
+      burstMinVolume: this.configService.get('VB_BURST_MIN_VOLUME'),
+      burstMaxVolume: this.configService.get('VB_BURST_MAX_VOLUME'),
+      burstMinExecutions: this.configService.get('VB_BURST_MIN_EXECUTIONS'),
+      burstMaxExecutions: this.configService.get('VB_BURST_MAX_EXECUTIONS'),
+      burstPriceSpreadUnits: this.configService.get('VB_BURST_PRICE_SPREAD_UNITS'),
     };
   }
 

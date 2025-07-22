@@ -111,12 +111,20 @@ export const validationSchema = Joi.object({
       'BUY_HEAVY',
       'SELL_HEAVY',
       'ALTERNATING',
+      'HIGH_VOLUME_BURST',
     )
     .default('BALANCED'),
   VB_BALANCE_WINDOW: Joi.number().min(5).max(50).default(20),
   VB_PRICE_IMPACT_LIMIT: Joi.number().min(0.1).max(2.0).default(0.5),
   VB_USE_SPREAD_TRADING: Joi.boolean().default(true),
   VB_MAX_CONSECUTIVE_SIDE: Joi.number().min(1).max(10).default(3),
+
+  // HIGH_VOLUME_BURST specific configuration
+  VB_BURST_MIN_VOLUME: Joi.number().min(100).max(100000).default(7000), // ILMT cumulative target
+  VB_BURST_MAX_VOLUME: Joi.number().min(1000).max(100000).default(30000), // ILMT cumulative target
+  VB_BURST_MIN_EXECUTIONS: Joi.number().min(10).max(500).default(100), // Many small trades
+  VB_BURST_MAX_EXECUTIONS: Joi.number().min(50).max(500).default(300), // Many small trades
+  VB_BURST_PRICE_SPREAD_UNITS: Joi.number().min(0.000001).max(0.001).default(0.000020),
 
   // Server Configuration
   PORT: Joi.number().port().default(3000),
@@ -195,11 +203,18 @@ export interface EnvironmentVariables {
   VB_ICEBERG_SIZE: number;
   VB_RANDOMIZE_EXECUTION: boolean;
   VB_MAX_CONCURRENT_TRADES: number;
-  VB_STRATEGY: 'RANDOM' | 'BALANCED' | 'SMART_SPREAD' | 'BUY_HEAVY' | 'SELL_HEAVY' | 'ALTERNATING';
+  VB_STRATEGY: 'RANDOM' | 'BALANCED' | 'SMART_SPREAD' | 'BUY_HEAVY' | 'SELL_HEAVY' | 'ALTERNATING' | 'HIGH_VOLUME_BURST';
   VB_BALANCE_WINDOW: number;
   VB_PRICE_IMPACT_LIMIT: number;
   VB_USE_SPREAD_TRADING: boolean;
   VB_MAX_CONSECUTIVE_SIDE: number;
+
+  // HIGH_VOLUME_BURST specific configuration
+  VB_BURST_MIN_VOLUME: number;
+  VB_BURST_MAX_VOLUME: number;
+  VB_BURST_MIN_EXECUTIONS: number;
+  VB_BURST_MAX_EXECUTIONS: number;
+  VB_BURST_PRICE_SPREAD_UNITS: number;
 
   PORT: number;
   API_RATE_LIMIT: number;

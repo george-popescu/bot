@@ -41,8 +41,27 @@ export class VolumeBoosterController {
       throw new Error('Minimum trade size must be at least 150 ILMT');
     }
     
-    if (config.maxTradeSize && config.maxTradeSize > 1000) {
-      throw new Error('Maximum trade size must be at most 1000 ILMT for safety');
+    // Allow higher volumes for HIGH_VOLUME_BURST strategy
+    const maxTradeLimit = config.strategy === 'HIGH_VOLUME_BURST' ? 50000 : 1000;
+    if (config.maxTradeSize && config.maxTradeSize > maxTradeLimit) {
+      throw new Error(`Maximum trade size must be at most ${maxTradeLimit} ILMT for safety`);
+    }
+    
+    // Validate burst configuration if present
+    if (config.burstMinVolume && config.burstMinVolume < 100) {
+      throw new Error('Minimum burst volume must be at least 100 USDT');
+    }
+    
+    if (config.burstMaxVolume && config.burstMaxVolume > 50000) {
+      throw new Error('Maximum burst volume must be at most 50,000 USDT for safety');
+    }
+    
+    if (config.burstMinExecutions && config.burstMinExecutions < 1) {
+      throw new Error('Minimum burst executions must be at least 1');
+    }
+    
+    if (config.burstMaxExecutions && config.burstMaxExecutions > 20) {
+      throw new Error('Maximum burst executions must be at most 20 for safety');
     }
     
     // Force monitoring mode for safety if trying to enable real trading
