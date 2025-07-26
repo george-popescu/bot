@@ -152,6 +152,26 @@ export class MarketMakingService {
       mexcBaseUrl: this.configService.mexcBaseUrl,
     });
 
+    // Enhanced startup banner
+    console.log('\n' + '█'.repeat(80));
+    console.log('🏪 MARKET MAKING BOT STARTUP');
+    console.log('█'.repeat(80));
+    console.log(`🚀 Bot Status:     INITIALIZING`);
+    console.log(`🏷️  Symbol:        ${this.config.symbol}`);
+    console.log(`📋 Strategy:      ${this.config.strategy}`);
+    console.log(`🎯 Exchange:      ${this.config.exchange}`);
+    console.log(`📐 Target Spread: ${this.config.spread}%`);
+    console.log(`💱 Order Size:    ${this.config.orderSize} ILMT`);
+    console.log(`⏰ Refresh Rate:  ${this.config.refreshInterval}s`);
+    console.log(`🔢 Max Orders:    ${this.config.maxOrders} per side`);
+    console.log(
+      `🎚️  Levels:        ${this.config.levels} (${this.config.levelDistance}% apart)`,
+    );
+    console.log(`📅 Started:       ${new Date().toLocaleString()}`);
+    console.log('█'.repeat(80));
+    console.log('✅ READY TO TRADE');
+    console.log('█'.repeat(80) + '\n');
+
     this.loggingService.info('🏪 Starting Market Making Bot', {
       component: 'MarketMakingService',
       config: this.config,
@@ -179,6 +199,15 @@ export class MarketMakingService {
       return;
     }
 
+    // Enhanced shutdown banner
+    console.log('\n' + '▓'.repeat(80));
+    console.log('🛑 MARKET MAKING BOT SHUTDOWN');
+    console.log('▓'.repeat(80));
+    console.log(`⏰ Stopped:       ${new Date().toLocaleString()}`);
+    console.log(`🔢 Final Orders:  ${this.activeOrders.length}`);
+    console.log('🔄 Cancelling all active orders...');
+    console.log('▓'.repeat(80));
+
     this.loggingService.info('🛑 Stopping Market Making Bot');
     this.isRunning = false;
 
@@ -196,40 +225,135 @@ export class MarketMakingService {
    */
   private async runMarketMaking(): Promise<void> {
     try {
-      this.loggingService.info('🔄 Running market making cycle');
-      // Get current market prices - use same logic as arbitrage bot
+      const cycleStartTime = Date.now();
+
+      // Header for new cycle
+      console.log('\n' + '═'.repeat(80));
+      console.log('🤖 MARKET MAKING CYCLE REPORT');
+      console.log(
+        `📅 ${new Date().toLocaleString('en-US', { timeZone: 'UTC' })} UTC`,
+      );
+      console.log('═'.repeat(80));
+
+      // Get current market prices
       const mexcBookTicker = await this.mexcApiService.getBookTicker(
         this.config.symbol,
       );
       const mexcBidPrice = parseFloat(mexcBookTicker.bidPrice);
       const mexcAskPrice = parseFloat(mexcBookTicker.askPrice);
       const mexcMidPrice = (mexcBidPrice + mexcAskPrice) / 2;
-      // Dacă prețul nu s-a schimbat semnificativ, nu facem nimic
+
+      // Calculate market metrics
+      const spread = mexcAskPrice - mexcBidPrice;
+      const spreadPercentage = (spread / mexcMidPrice) * 100;
+      const priceChange = this.lastPrice
+        ? ((mexcMidPrice - this.lastPrice) / this.lastPrice) * 100
+        : 0;
+
+      // Market Data Section
+      console.log('\n📊 MARKET DATA');
+      console.log('─'.repeat(50));
+      console.log(`🏷️  Symbol:        ${this.config.symbol}`);
+      console.log(`💰 Mid Price:     $${mexcMidPrice.toFixed(6)}`);
+      console.log(`📈 Bid Price:     $${mexcBidPrice.toFixed(6)}`);
+      console.log(`📉 Ask Price:     $${mexcAskPrice.toFixed(6)}`);
+      console.log(
+        `📏 Spread:        $${spread.toFixed(8)} (${spreadPercentage.toFixed(4)}%)`,
+      );
+      if (this.lastPrice) {
+        const changeIcon = priceChange >= 0 ? '⬆️' : '⬇️';
+        const changeColor = priceChange >= 0 ? '🟢' : '🔴';
+        console.log(
+          `${changeIcon} Price Change: ${changeColor} ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(4)}%`,
+        );
+      }
+
+      // Configuration Section
+      console.log('\n⚙️  STRATEGY CONFIG');
+      console.log('─'.repeat(50));
+      console.log(`📋 Strategy:      ${this.config.strategy}`);
+      console.log(`🎯 Exchange:      ${this.config.exchange}`);
+      console.log(`📐 Target Spread: ${this.config.spread}%`);
+      console.log(`💱 Order Size:    ${this.config.orderSize} ILMT`);
+      console.log(`🔢 Max Orders:    ${this.config.maxOrders} per side`);
+      console.log(`🎚️  Levels:        ${this.config.levels}`);
+      console.log(`📏 Level Dist:    ${this.config.levelDistance}%`);
+
+      // Active Orders Section
+      console.log('\n📝 ACTIVE ORDERS STATUS');
+      console.log('─'.repeat(50));
+      console.log(`🔢 Total Orders:  ${this.activeOrders.length}`);
+
+      const buyOrders = this.activeOrders.filter((o) => o.side === 'BUY');
+      const sellOrders = this.activeOrders.filter((o) => o.side === 'SELL');
+
+      console.log(`🟢 Buy Orders:    ${buyOrders.length}`);
+      console.log(`🔴 Sell Orders:   ${sellOrders.length}`);
+
+      if (buyOrders.length > 0) {
+        const avgBuyPrice =
+          buyOrders.reduce((sum, o) => sum + o.price, 0) / buyOrders.length;
+        console.log(`   📈 Avg Buy:    $${avgBuyPrice.toFixed(6)}`);
+      }
+
+      if (sellOrders.length > 0) {
+        const avgSellPrice =
+          sellOrders.reduce((sum, o) => sum + o.price, 0) / sellOrders.length;
+        console.log(`   📉 Avg Sell:   $${avgSellPrice.toFixed(6)}`);
+      }
+
+      // Check if price change is significant
       if (
         this.lastPrice &&
         Math.abs(mexcMidPrice - this.lastPrice) / this.lastPrice < 0.0001
       ) {
-        this.loggingService.info(
-          '⏸️ No significant price change, skipping market making cycle',
-          {
-            lastPrice: this.lastPrice,
-            currentPrice: mexcMidPrice,
-          },
-        );
+        // Get current balances for skip case too
+        const balanceInfo = await this.getFormattedBalanceInfo(mexcMidPrice);
+
+        console.log('\n⏸️  CYCLE RESULT');
+        console.log('─'.repeat(50));
+        console.log('🔄 No significant price change detected');
+        console.log('⏭️  Skipping market making operations');
+        console.log(balanceInfo);
+        console.log(`⏱️  Cycle Time: ${Date.now() - cycleStartTime}ms`);
+        console.log('═'.repeat(80) + '\n');
         return;
       }
+
       this.lastPrice = mexcMidPrice;
+
+      // Market Making Execution Section
+      console.log('\n🚀 EXECUTING MARKET MAKING');
+      console.log('─'.repeat(50));
+
       // For now, focus on MEXC market making
       if (this.config.exchange === 'MEXC' || this.config.exchange === 'BOTH') {
         await this.runMexcMarketMaking(mexcMidPrice);
       }
-      this.loggingService.info('✅ Market making cycle completed', {
-        activeOrders: this.activeOrders.length,
-        mexcMidPrice,
-        mexcBidPrice,
-        mexcAskPrice,
-      });
+
+      // Final Status Report
+      const cycleEndTime = Date.now();
+      const executionTime = cycleEndTime - cycleStartTime;
+
+      // Get current balances
+      const balanceInfo = await this.getFormattedBalanceInfo(mexcMidPrice);
+
+      console.log('\n✅ CYCLE COMPLETED');
+      console.log('─'.repeat(50));
+      console.log(`⏱️  Execution Time: ${executionTime}ms`);
+      console.log(`🔢 Final Orders:   ${this.activeOrders.length}`);
+      console.log(`💰 Final Price:    $${mexcMidPrice.toFixed(6)}`);
+      console.log(balanceInfo);
+      console.log(`🎯 Next Cycle:     ${this.config.refreshInterval}s`);
+      console.log('═'.repeat(80) + '\n');
     } catch (error) {
+      console.log('\n❌ CYCLE ERROR');
+      console.log('─'.repeat(50));
+      console.log(
+        `🚨 Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      console.log('═'.repeat(80) + '\n');
+
       this.loggingService.error(
         error instanceof Error ? error.message : String(error),
       );
@@ -313,12 +437,12 @@ export class MarketMakingService {
     const buyOrders = this.activeOrders.filter((o) => o.side === 'BUY');
     const sellOrders = this.activeOrders.filter((o) => o.side === 'SELL');
 
-    this.loggingService.info(`📋 Current orders status`, {
-      totalOrders: this.activeOrders.length,
-      buyOrders: buyOrders.length,
-      sellOrders: sellOrders.length,
-      currentPrice,
-    });
+    // this.loggingService.info(`📋 Current orders status`, {
+    //   totalOrders: this.activeOrders.length,
+    //   buyOrders: buyOrders.length,
+    //   sellOrders: sellOrders.length,
+    //   currentPrice,
+    // });
 
     // 8. Calculez ordinele necesare pe baza strategiei
     const { buyOrdersNeeded, sellOrdersNeeded } = this.calculateOrdersNeeded(
@@ -326,15 +450,15 @@ export class MarketMakingService {
       sellOrders.length,
     );
 
-    this.loggingService.info(`📋 Strategy: ${this.config.strategy}`, {
-      totalOrders: this.activeOrders.length,
-      buyOrders: buyOrders.length,
-      sellOrders: sellOrders.length,
-      buyOrdersNeeded,
-      sellOrdersNeeded,
-      currentPrice,
-      executedOrdersCount: this.executedOrders.length,
-    });
+    // this.loggingService.info(`📋 Strategy: ${this.config.strategy}`, {
+    //   totalOrders: this.activeOrders.length,
+    //   buyOrders: buyOrders.length,
+    //   sellOrders: sellOrders.length,
+    //   buyOrdersNeeded,
+    //   sellOrdersNeeded,
+    //   currentPrice,
+    //   executedOrdersCount: this.executedOrders.length,
+    // });
 
     // 9. Dacă nu trebuie să plasez ordine, nu fac nimic
     if (buyOrdersNeeded === 0 && sellOrdersNeeded === 0) {
@@ -505,6 +629,33 @@ export class MarketMakingService {
           timestamp: new Date(),
         });
 
+        // Enhanced order placement console output
+        console.log(
+          '┌─────────────────────────────────────────────────────────┐',
+        );
+        console.log(
+          '│ 🟢 BUY ORDER PLACED                                    │',
+        );
+        console.log(
+          '├─────────────────────────────────────────────────────────┤',
+        );
+        console.log(`│ 📊 Exchange:    ${exchange.padEnd(30)}               │`);
+        console.log(
+          `│ 🆔 Order ID:    ${order.orderId.toString().padEnd(30)}               │`,
+        );
+        console.log(
+          `│ 💰 Price:       $${price.toFixed(6).padEnd(29)}               │`,
+        );
+        console.log(
+          `│ 📦 Amount:      ${amount.toFixed(2).padEnd(30)} ILMT          │`,
+        );
+        console.log(
+          `│ ⏰ Time:        ${new Date().toLocaleTimeString().padEnd(30)}               │`,
+        );
+        console.log(
+          '└─────────────────────────────────────────────────────────┘',
+        );
+
         this.loggingService.info(`🟢 BUY order placed on ${exchange}`, {
           orderId: order.orderId,
           price,
@@ -562,6 +713,33 @@ export class MarketMakingService {
           amount,
           timestamp: new Date(),
         });
+
+        // Enhanced SELL order placement console output
+        console.log(
+          '┌─────────────────────────────────────────────────────────┐',
+        );
+        console.log(
+          '│ 🔴 SELL ORDER PLACED                                   │',
+        );
+        console.log(
+          '├─────────────────────────────────────────────────────────┤',
+        );
+        console.log(`│ 📊 Exchange:    ${exchange.padEnd(30)}               │`);
+        console.log(
+          `│ 🆔 Order ID:    ${order.orderId.toString().padEnd(30)}               │`,
+        );
+        console.log(
+          `│ 💰 Price:       $${price.toFixed(6).padEnd(29)}               │`,
+        );
+        console.log(
+          `│ 📦 Amount:      ${amount.toFixed(2).padEnd(30)} ILMT          │`,
+        );
+        console.log(
+          `│ ⏰ Time:        ${new Date().toLocaleTimeString().padEnd(30)}               │`,
+        );
+        console.log(
+          '└─────────────────────────────────────────────────────────┘',
+        );
 
         this.loggingService.info(`🔴 SELL order placed on ${exchange}`, {
           orderId: order.orderId,
@@ -893,6 +1071,42 @@ export class MarketMakingService {
         `Failed to check balance for order: ${error instanceof Error ? error.message : String(error)}`,
       );
       return false;
+    }
+  }
+
+  /**
+   * Fetch and format current account balances
+   */
+  private async getFormattedBalanceInfo(currentPrice: number): Promise<string> {
+    try {
+      const account = await this.mexcApiService.getAccount();
+      const usdtBalance = account.balances.find((b) => b.asset === 'USDT');
+      const ilmtBalance = account.balances.find((b) => b.asset === 'ILMT');
+
+      const usdtFree = parseFloat(usdtBalance?.free || '0');
+      const ilmtFree = parseFloat(ilmtBalance?.free || '0');
+      const usdtLocked = parseFloat(usdtBalance?.locked || '0');
+      const ilmtLocked = parseFloat(ilmtBalance?.locked || '0');
+
+      // Calculate values
+      const ilmtValue = ilmtFree * currentPrice;
+      const portfolioValue = usdtFree + ilmtValue;
+      const lockedValue = usdtLocked + (ilmtLocked * currentPrice);
+      const totalUsdt = usdtFree + usdtLocked;
+      const totalIlmt = ilmtFree + ilmtLocked;
+
+      return `
+💳 ACCOUNT BALANCES
+──────────────────────────────────────────────────
+💰 USDT: ${totalUsdt.toFixed(2)} - [${usdtFree.toFixed(2)} + ${usdtLocked.toFixed(2)}]
+🪙 ILMT: ${totalIlmt.toFixed(2)} - [${ilmtFree.toFixed(2)} + ${ilmtLocked.toFixed(2)}]
+📊 ILMT Value:    $${ilmtValue.toFixed(2)} USDT
+💎 Total Value:   $${portfolioValue.toFixed(2)} USDT`;
+    } catch (error) {
+      return `
+💳 ACCOUNT BALANCES
+──────────────────────────────────────────────────
+❌ Failed to fetch balances: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
