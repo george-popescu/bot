@@ -712,10 +712,26 @@ export class MarketMakingService {
     // Find orders that were in our active list but are no longer on MEXC
     for (const localOrder of this.activeOrders) {
       if (!mexcOrderIds.includes(localOrder.orderId)) {
-        // This order was executed/filled
+        // PROTECȚIE: Nu procesa ordine manuale mai mari decât MM_ORDER_SIZE
+        if (localOrder.amount > this.config.orderSize) {
+          this.loggingService.info(
+            `🔒 PROTECTED: Ignoring executed manual order (${localOrder.amount} > ${this.config.orderSize})`,
+            {
+              orderId: localOrder.orderId,
+              side: localOrder.side,
+              price: localOrder.price,
+              amount: localOrder.amount,
+              maxMmSize: this.config.orderSize,
+              reason: 'Manual order executed - not replacing',
+            },
+          );
+          continue; // Skip processing this manual order
+        }
+
+        // This order was executed/filled (and it's an MM order)
         const executedOrder: ExecutedOrder = {
           orderId: localOrder.orderId,
-          exchange: localOrder.exchange,
+          exchange: 'MEXC',
           side: localOrder.side,
           price: localOrder.price,
           amount: localOrder.amount,
@@ -726,7 +742,7 @@ export class MarketMakingService {
         executedInThisCycle.push(executedOrder);
         this.executedOrders.push(executedOrder);
 
-        this.loggingService.info(`🎯 Order EXECUTED detected`, {
+        this.loggingService.info(`🎯 MM Order EXECUTED detected`, {
           orderId: localOrder.orderId,
           side: localOrder.side,
           price: localOrder.price,
@@ -779,15 +795,38 @@ export class MarketMakingService {
   ): Promise<void> {
     const unprocessedExecuted = this.executedOrders.filter(
       (o) =>
-        !o.replacementPlaced && o.executedAt.getTime() > Date.now() - 300000, // Last 5 minutes
+        !o.replacementPlaced &&
+        o.executedAt.getTime() > Date.now() - 300000 && // Last 5 minutes
+        o.amount <= this.config.orderSize, // PROTECȚIE: Only replace MM orders, not manual ones
     );
 
     if (unprocessedExecuted.length === 0) {
+      // Log if we're skipping any manual orders
+      const skippedManualOrders = this.executedOrders.filter(
+        (o) =>
+          !o.replacementPlaced &&
+          o.executedAt.getTime() > Date.now() - 300000 &&
+          o.amount > this.config.orderSize,
+      );
+
+      if (skippedManualOrders.length > 0) {
+        this.loggingService.info(
+          `🔒 PROTECTED: Skipping replacement for ${skippedManualOrders.length} executed manual orders`,
+          {
+            skippedOrders: skippedManualOrders.map((o) => ({
+              orderId: o.orderId,
+              side: o.side,
+              amount: o.amount,
+              maxMmSize: this.config.orderSize,
+            })),
+          },
+        );
+      }
       return;
     }
 
     this.loggingService.info(
-      `🎯 Placing strategic replacements for ${unprocessedExecuted.length} executed orders`,
+      `🎯 Placing strategic replacements for ${unprocessedExecuted.length} executed MM orders`,
     );
 
     for (const executedOrder of unprocessedExecuted) {
@@ -935,7 +974,24 @@ export class MarketMakingService {
       const recentlyRebalanced =
         Date.now() - order.timestamp.getTime() < 120000; // 2 minute
 
-      return isTooFar && !recentlyRebalanced;
+      // PROTECȚIE: Nu rebalansa ordine mai mari decât MM_ORDER_SIZE - acestea sunt manuale!
+      const isManualOrder = order.amount > this.config.orderSize;
+
+      if (isManualOrder) {
+        this.loggingService.info(
+          `🔒 PROTECTED: Ignoring manual order (${order.amount} > ${this.config.orderSize})`,
+          {
+            orderId: order.orderId,
+            side: order.side,
+            price: order.price,
+            amount: order.amount,
+            maxMmSize: this.config.orderSize,
+            reason: 'Manual order protection - not created by MM',
+          },
+        );
+      }
+
+      return isTooFar && !recentlyRebalanced && !isManualOrder;
     });
 
     if (ordersToRebalance.length === 0) {
